@@ -1,90 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Python Pong - Fixed & Scored</title>
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
-    <style>
-        body { background: #000; margin: 0; color: #0f0; font-family: 'Courier New', Courier, monospace; overflow: hidden; touch-action: none; text-align: center; }
-        canvas { display: block; background: #000; border-top: 2px solid #0f0; }
-        #ui { position: absolute; top: 10px; width: 100%; font-size: 24px; pointer-events: none; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Neon Pong Online</title>
+  <meta name="description" content="A lightweight, neon-styled Pong you can play online in real time against a friend on another computer.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="ui">
-        P1: <span id="s_l">0</span> | P2: <span id="s_r">0</span>
-        <div style="font-size: 14px; color: #888;">Click screen first! W/S & Arrows</div>
+  <canvas id="gameCanvas"></canvas>
+  <div class="vignette"></div>
+  <div class="scanlines"></div>
+
+  <div id="overlay">
+
+    <!-- Main menu -->
+    <div class="panel" id="screen-menu">
+      <h1 class="title">PONG</h1>
+      <p class="subtitle">Real-time online multiplayer &middot; no install, no server</p>
+      <button class="btn" id="btn-create">Create Game</button>
+      <button class="btn magenta" id="btn-join">Join Game</button>
+      <p class="status-line">Use <strong>W/S</strong> or <strong>&uarr;/&darr;</strong> to move your paddle</p>
     </div>
-    <canvas id="pongCanvas"></canvas>
 
-    <script type="py">
-import asyncio
-from js import document, window
-from pyodide.ffi import create_proxy
+    <!-- Join screen -->
+    <div class="panel hidden" id="screen-join">
+      <h1 class="title" style="font-size:20px;">Join Game</h1>
+      <p class="subtitle">Enter the 6-character room code your friend shared</p>
+      <input class="code-input" id="input-code" maxlength="6" placeholder="XXXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <p class="error-text" id="join-error"></p>
+      <button class="btn magenta" id="btn-join-confirm">Join</button>
+      <button class="btn ghost" id="btn-join-back">Back</button>
+    </div>
 
-canvas = document.getElementById("pongCanvas")
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight - 50
-ctx = canvas.getContext("2d")
+    <!-- Waiting for opponent (host) -->
+    <div class="panel hidden" id="screen-waiting">
+      <h1 class="title" style="font-size:20px;">Waiting for Opponent</h1>
+      <p class="subtitle">Share this code or link with your friend</p>
+      <div class="room-code" id="room-code-display">------</div>
+      <div class="link-row">
+        <button class="btn" id="btn-copy-code">Copy Code</button>
+        <button class="btn" id="btn-copy-link">Copy Link</button>
+      </div>
+      <p class="status-line">Waiting for opponent to connect<span class="dots"></span></p>
+      <button class="btn ghost" id="btn-cancel-wait">Cancel</button>
+    </div>
 
-# Game State
-ball = {"x": canvas.width/2, "y": canvas.height/2, "dx": 5, "dy": 5}
-p_l = {"y": canvas.height/2 - 50, "score": 0}
-p_r = {"y": canvas.height/2 - 50, "score": 0}
-pressed_keys = {}
+    <!-- Countdown -->
+    <div class="panel hidden" id="screen-countdown">
+      <h1 class="title" style="font-size:18px;">Opponent Connected!</h1>
+      <p class="subtitle">Get ready...</p>
+      <div class="room-code" id="countdown-number">3</div>
+    </div>
 
-# Robust Input Handling
-def on_keydown(e): pressed_keys[e.key.lower()] = True
-def on_keyup(e): pressed_keys[e.key.lower()] = False
-def on_touch(e):
-    e.preventDefault()
-    for t in e.touches:
-        if t.pageX < canvas.width/2: p_l["y"] = t.pageY - 50
-        else: p_r["y"] = t.pageY - 50
+    <!-- Game over -->
+    <div class="panel hidden" id="screen-gameover">
+      <div class="big-result" id="result-text">YOU WIN!</div>
+      <p class="subtitle" id="final-score">7 - 4</p>
+      <button class="btn" id="btn-rematch">Play Again</button>
+      <button class="btn ghost" id="btn-leave">Back to Menu</button>
+    </div>
 
-window.addEventListener("keydown", create_proxy(on_keydown))
-window.addEventListener("keyup", create_proxy(on_keyup))
-document.addEventListener("touchstart", create_proxy(on_touch), {"passive": False})
-document.addEventListener("touchmove", create_proxy(on_touch), {"passive": False})
+    <!-- Disconnected -->
+    <div class="panel hidden" id="screen-disconnected">
+      <h1 class="title" style="font-size:18px; color: var(--neon-magenta); text-shadow:0 0 8px var(--neon-magenta);">Opponent Left</h1>
+      <p class="subtitle">The connection to your opponent was lost.</p>
+      <button class="btn ghost" id="btn-disconnected-menu">Back to Menu</button>
+    </div>
 
-async def main():
-    while True:
-        # Paddle Movement Logic
-        if pressed_keys.get("w") and p_l["y"] > 0: p_l["y"] -= 8
-        if pressed_keys.get("s") and p_l["y"] < canvas.height - 100: p_l["y"] += 8
-        if (pressed_keys.get("arrowup") or pressed_keys.get("i")) and p_r["y"] > 0: p_r["y"] -= 8
-        if (pressed_keys.get("arrowdown") or pressed_keys.get("k")) and p_r["y"] < canvas.height - 100: p_r["y"] += 8
+  </div>
 
-        # Ball Movement
-        ball["x"] += ball["dx"]; ball["y"] += ball["dy"]
-        if ball["y"] <= 0 or ball["y"] >= canvas.height: ball["dy"] *= -1
-        
-        # Collision
-        if (ball["x"] < 30 and p_l["y"] < ball["y"] < p_l["y"]+100) or \
-           (ball["x"] > canvas.width-30 and p_r["y"] < ball["y"] < p_r["y"]+100):
-            ball["dx"] *= -1.1
-
-        # Scoring
-        if ball["x"] < 0:
-            p_r["score"] += 1
-            document.getElementById("s_r").innerHTML = str(p_r["score"])
-            ball["x"], ball["y"], ball["dx"] = canvas.width/2, canvas.height/2, 5
-        elif ball["x"] > canvas.width:
-            p_l["score"] += 1
-            document.getElementById("s_l").innerHTML = str(p_l["score"])
-            ball["x"], ball["y"], ball["dx"] = canvas.width/2, canvas.height/2, -5
-
-        # Draw
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        ctx.fillStyle = "#0f0"
-        ctx.fillRect(15, p_l["y"], 15, 100)
-        ctx.fillRect(canvas.width-30, p_r["y"], 15, 100)
-        ctx.beginPath(); ctx.arc(ball["x"], ball["y"], 8, 0, 6.28); ctx.fill()
-        await asyncio.sleep(0.016)
-
-asyncio.ensure_future(main())
-    </script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>
