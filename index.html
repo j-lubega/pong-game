@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Neon Pong Online</title>
-  <meta name="description" content="A lightweight, neon-styled Pong you can play online in real time against a friend on another computer.">
+  <meta name="description" content="A lightweight, neon-styled Pong you can play solo against a bot, or online in real time against a friend on another computer.">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -18,7 +18,9 @@
     <!-- Main menu -->
     <div class="panel" id="screen-menu">
       <h1 class="title">PONG</h1>
-      <p class="subtitle">Real-time online multiplayer &middot; no install, no server</p>
+      <p class="subtitle">Play solo against a bot, or online with a friend</p>
+      <button class="btn amber" id="btn-bot">Play vs Bot</button>
+      <div class="menu-divider">Online Multiplayer</div>
       <button class="btn" id="btn-create">Create Game</button>
       <button class="btn magenta" id="btn-join">Join Game</button>
       <p class="status-line">Use <strong>W/S</strong> or <strong>&uarr;/&darr;</strong> to move your paddle</p>
@@ -49,7 +51,7 @@
 
     <!-- Countdown -->
     <div class="panel hidden" id="screen-countdown">
-      <h1 class="title" style="font-size:18px;">Opponent Connected!</h1>
+      <h1 class="title" style="font-size:18px;" id="countdown-title">Opponent Connected!</h1>
       <p class="subtitle">Get ready...</p>
       <div class="room-code" id="countdown-number">3</div>
     </div>

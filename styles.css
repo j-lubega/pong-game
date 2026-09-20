@@ -5,6 +5,7 @@
   --bg-bottom: #000000;
   --neon-cyan: #4dfbff;
   --neon-magenta: #ff3ec9;
+  --neon-amber: #ffb347;
   --text-dim: #7d8aa8;
   --panel-bg: rgba(10, 14, 26, 0.85);
 }
@@ -136,6 +137,34 @@ html, body {
   background: rgba(255, 255, 255, 0.08);
   color: #eaf6ff;
   box-shadow: none;
+}
+
+.btn.amber {
+  border-color: var(--neon-amber);
+  color: var(--neon-amber);
+}
+.btn.amber:hover {
+  background: var(--neon-amber);
+  color: #05070d;
+  box-shadow: 0 0 20px rgba(255, 179, 71, 0.55);
+}
+
+.menu-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 12px;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.menu-divider::before,
+.menu-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .code-input {

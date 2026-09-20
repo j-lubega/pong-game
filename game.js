@@ -97,15 +97,41 @@ function drawParticles() {
 // ---------- Match / network state ----------
 let netApi = null;
 let amHost = false;
+let vsBot = false;
 let roomId = null;
 let appState = 'menu'; // menu | waiting | countdown | playing | gameover | disconnected
 
 let myY = 0;      // my own paddle, local & instantly responsive
-let oppY = 0;      // opponent paddle: host receives via 'paddle', client receives via 'state'
+let oppY = 0;      // opponent paddle: host receives via 'paddle'/client via 'state', or bot-driven
 let ball = { x: 0, y: 0, dx: 0, dy: 0 };
 let leftScore = 0, rightScore = 0;
 let ballTrail = [];
 let screenFlash = 0; // brief brightness pulse on score
+
+// ---------- Bot AI (used only in single-player mode) ----------
+// Re-targets periodically rather than every frame, and aims with some
+// random error, so it reacts and misses a bit like a person would instead
+// of tracking the ball with perfect, instant precision.
+const BOT_SPEED_FACTOR = 0.78;    // slower than the player's max paddle speed
+const BOT_REACTION_MS = 200;
+const BOT_AIM_ERROR = 55;         // px of random aim error; occasionally exceeds half the
+                                   // 100px paddle height so the bot actually whiffs sometimes
+let botTargetY = 0;
+let botLastReaction = 0;
+
+function updateBot(dt, now) {
+  if (now - botLastReaction > BOT_REACTION_MS) {
+    botLastReaction = now;
+    botTargetY = ball.dx > 0
+      ? ball.y - PADDLE_H / 2 + (Math.random() * 2 - 1) * BOT_AIM_ERROR
+      : H / 2 - PADDLE_H / 2; // drift back to center while the ball is moving away
+  }
+  const diff = botTargetY - oppY;
+  const step = PADDLE_SPEED * BOT_SPEED_FACTOR * dt;
+  if (Math.abs(diff) < step) oppY = botTargetY;
+  else oppY += Math.sign(diff) * step;
+  oppY = Math.max(0, Math.min(H - PADDLE_H, oppY));
+}
 
 function resetPositions(serveTowardLeft = Math.random() < 0.5) {
   myY = H / 2 - PADDLE_H / 2;
@@ -173,6 +199,9 @@ function render() {
   if (appState === 'playing') {
     const leftY = amHost ? myY : oppY;
     const rightY = amHost ? oppY : myY;
+    const oppColor = vsBot ? '#ffb347' : '#ff3ec9';
+    const oppColorSoft = vsBot ? 'rgba(255, 179, 71, 0.9)' : 'rgba(255, 62, 201, 0.9)';
+    const oppLabel = vsBot ? 'BOT' : 'OPPONENT';
 
     // ball trail (fading afterimage)
     ballTrail.forEach((t, i) => {
@@ -182,7 +211,7 @@ function render() {
     ctx.globalAlpha = 1;
 
     drawGlowRect(PADDLE_MARGIN, leftY, PADDLE_W, PADDLE_H, '#4dfbff');
-    drawGlowRect(W - PADDLE_MARGIN - PADDLE_W, rightY, PADDLE_W, PADDLE_H, '#ff3ec9');
+    drawGlowRect(W - PADDLE_MARGIN - PADDLE_W, rightY, PADDLE_W, PADDLE_H, oppColor);
     drawGlowCircle(ball.x, ball.y, BALL_R, '#ffffff');
     drawParticles();
 
@@ -193,8 +222,8 @@ function render() {
     ctx.shadowColor = '#4dfbff';
     ctx.shadowBlur = 12;
     ctx.fillText(leftScore, W / 2 - 70, 60);
-    ctx.fillStyle = 'rgba(255, 62, 201, 0.9)';
-    ctx.shadowColor = '#ff3ec9';
+    ctx.fillStyle = oppColorSoft;
+    ctx.shadowColor = oppColor;
     ctx.fillText(rightScore, W / 2 + 70, 60);
     ctx.shadowBlur = 0;
 
@@ -202,7 +231,7 @@ function render() {
     ctx.font = "11px 'Segoe UI', sans-serif";
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.fillText('YOU', amHost ? PADDLE_MARGIN + PADDLE_W / 2 : W - PADDLE_MARGIN - PADDLE_W / 2, H - 18);
-    ctx.fillText('OPPONENT', amHost ? W - PADDLE_MARGIN - PADDLE_W / 2 : PADDLE_MARGIN + PADDLE_W / 2, H - 18);
+    ctx.fillText(oppLabel, amHost ? W - PADDLE_MARGIN - PADDLE_W / 2 : PADDLE_MARGIN + PADDLE_W / 2, H - 18);
   } else {
     drawIdleBall();
   }
@@ -303,6 +332,7 @@ function loop(now) {
 
   if (appState === 'playing') {
     moveMyPaddle(dt);
+    if (vsBot) updateBot(dt, now);
     if (amHost) stepHostPhysics(dt); // may flip appState to 'gameover' on a win
     updateParticles(dt);
   } else if (appState !== 'gameover') {
@@ -360,9 +390,24 @@ function startCountdown(onComplete) {
   }, 800);
 }
 
+function startBotGame() {
+  amHost = true;
+  vsBot = true;
+  netApi = null;
+  roomId = null;
+
+  document.getElementById('countdown-title').textContent = 'Practice Match';
+  startCountdown(() => {
+    resetMatch();
+    appState = 'playing';
+    showScreen(null);
+  });
+}
+
 function hostGame() {
   roomId = randomRoomCode();
   amHost = true;
+  vsBot = false;
   netApi = connect(roomId);
   wireNetworkCommon();
 
@@ -370,6 +415,7 @@ function hostGame() {
 
   netApi.onPeerJoin(() => {
     if (netApi.peerCount() >= 1 && appState === 'waiting') {
+      document.getElementById('countdown-title').textContent = 'Opponent Connected!';
       startCountdown(() => {
         resetMatch();
         appState = 'playing';
@@ -392,6 +438,7 @@ function hostGame() {
 function joinGame(code) {
   roomId = code.toUpperCase();
   amHost = false;
+  vsBot = false;
   netApi = connect(roomId);
   wireNetworkCommon();
 
@@ -412,6 +459,7 @@ function joinGame(code) {
 
   netApi.onPeerJoin(() => {
     if (appState === 'waiting') {
+      document.getElementById('countdown-title').textContent = 'Opponent Connected!';
       // No onComplete action needed: the client transitions to 'playing'
       // as soon as the host's first 'state' message arrives above, so it
       // never has to guess the starting state on its own.
@@ -446,11 +494,13 @@ async function copyText(text, btnId, resetLabel) {
 
 function leaveToMenu() {
   if (netApi) { try { netApi.leave(); } catch {} netApi = null; }
+  vsBot = false;
   appState = 'menu';
   showScreen('menu');
 }
 
 // ---------- Menu wiring ----------
+document.getElementById('btn-bot').addEventListener('click', startBotGame);
 document.getElementById('btn-create').addEventListener('click', hostGame);
 
 document.getElementById('btn-join').addEventListener('click', () => {
@@ -477,7 +527,7 @@ document.getElementById('btn-disconnected-menu').addEventListener('click', leave
 document.getElementById('btn-leave').addEventListener('click', leaveToMenu);
 
 document.getElementById('btn-rematch').addEventListener('click', () => {
-  netApi.sendRematch();
+  if (netApi) netApi.sendRematch();
   resetMatch();
   appState = 'playing';
   showScreen(null);

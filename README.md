@@ -1,27 +1,45 @@
 # 🏓 Neon Pong Online
 
-A classic Pong game, rebuilt as a lightweight, real-time **online multiplayer**
-game you can play against a friend on a different computer — no install, no
-account, no backend server to run.
+A classic Pong game, rebuilt as a lightweight game you can either practice
+against a **bot**, solo, or play in real time online against a friend on a
+different computer — no install, no account, no backend server to run.
 
 ## ▶️ Play Now
 
 **[https://j-lubega.github.io/pong-game/](https://j-lubega.github.io/pong-game/)**
 
-Open that link on two computers (or two browser windows/tabs), have one
-player click **Create Game**, share the code or link it gives you with the
-other player, and play.
+From the menu, pick one:
+- **Play vs Bot** — starts an instant single-player practice match against
+  the built-in AI. Nothing to set up.
+- **Create Game** / **Join Game** — play a friend on another computer. Have
+  one player click **Create Game**, share the code or link it gives you with
+  the other player, and play.
 
 ---
 
 ## 🎮 Controls
 
-Each player uses **their own keyboard** to move their own paddle:
+Move your paddle with:
 
 - **W** or **↑ (Up Arrow)** — move up
 - **S** or **↓ (Down Arrow)** — move down
 
-First to **7 points** wins.
+In online matches, each player uses their own keyboard on their own
+computer. First to **7 points** wins.
+
+---
+
+## 🤖 Playing vs the Bot
+
+Click **Play vs Bot** for an instant, offline single-player match — no
+matchmaking, no waiting screen, nothing shared over the network. You always
+play the left (cyan) paddle; the bot plays the right (amber) paddle.
+
+The bot re-aims periodically rather than tracking the ball with perfect,
+instant precision, and its aim has some built-in error, so it reacts and
+occasionally misses like an opponent would rather than playing like an
+unbeatable wall. It gets tougher to rally against as a point goes on, since
+the ball itself speeds up slightly on every paddle hit.
 
 ---
 
@@ -56,6 +74,8 @@ GitHub Pages site with no backend to host or pay for.
 
 ## ✨ What's in the Game
 
+- **Single-player practice mode** against a built-in bot, with no networking
+  involved at all.
 - **Lightweight** — vanilla JS + `<canvas>`, no framework, no build step, and
   no heavyweight in-browser runtime. The entire game (HTML + CSS + JS) is a
   few tens of KB; the only external dependency is the small Trystero
