@@ -18,6 +18,11 @@ function showScreen(name) {
   document.getElementById('overlay').style.display = name ? 'flex' : 'none';
 }
 
+// A phone/tablet has no keyboard, so point people at drag controls instead.
+if (window.matchMedia('(pointer: coarse)').matches) {
+  document.getElementById('control-hint').textContent = 'Drag anywhere on the screen to move your paddle';
+}
+
 // ---------- Constants ----------
 const PADDLE_W = 14;
 const PADDLE_H = 100;
@@ -243,7 +248,13 @@ function render() {
   }
 }
 
-// ---------- Input: both key schemes move MY paddle (each player has one keyboard) ----------
+// ---------- Input ----------
+function clampPaddleY(y) {
+  return Math.max(0, Math.min(H - PADDLE_H, y));
+}
+
+// Keyboard: both W/S and the arrow keys move MY paddle (each player has
+// one keyboard).
 const keys = {};
 window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
@@ -253,8 +264,22 @@ function moveMyPaddle(dt) {
   const down = keys['s'] || keys['arrowdown'];
   if (up) myY -= PADDLE_SPEED * dt;
   if (down) myY += PADDLE_SPEED * dt;
-  myY = Math.max(0, Math.min(H - PADDLE_H, myY));
+  myY = clampPaddleY(myY);
 }
+
+// Touch: drag anywhere on the canvas and the paddle follows your finger,
+// same as the original game's touch controls. Listeners are on the canvas
+// element specifically (not window), which sits *behind* the full-viewport
+// menu overlay in stacking order - so a tap on a menu button never reaches
+// these handlers, no appState check needed to keep them from colliding.
+function handleTouch(e) {
+  const touch = e.touches[0];
+  if (!touch) return;
+  e.preventDefault();
+  myY = clampPaddleY(touch.clientY - PADDLE_H / 2);
+}
+canvas.addEventListener('touchstart', handleTouch, { passive: false });
+canvas.addEventListener('touchmove', handleTouch, { passive: false });
 
 // ---------- Host-authoritative physics ----------
 function stepHostPhysics(dt) {

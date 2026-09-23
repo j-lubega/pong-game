@@ -19,13 +19,17 @@ From the menu, pick one:
 
 ## 🎮 Controls
 
-Move your paddle with:
+**Desktop:** move your paddle with
 
 - **W** or **↑ (Up Arrow)** — move up
 - **S** or **↓ (Down Arrow)** — move down
 
-In online matches, each player uses their own keyboard on their own
-computer. First to **7 points** wins.
+**Phone/tablet:** just **drag your finger up and down anywhere on the
+screen** — your paddle follows your touch. No on-screen buttons to hunt for.
+
+In online matches, each player controls their own paddle from their own
+device — one on a keyboard, another on a phone, mixed however you like.
+First to **7 points** wins.
 
 ---
 
@@ -74,6 +78,9 @@ GitHub Pages site with no backend to host or pay for.
 
 ## ✨ What's in the Game
 
+- **Works on phones and tablets**, not just desktop — touch-and-drag paddle
+  control, a responsive layout, and pinch-zoom/scroll disabled so the game
+  doesn't fight your browser while you play.
 - **Single-player practice mode** against a built-in bot, with no networking
   involved at all.
 - **Lightweight** — vanilla JS + `<canvas>`, no framework, no build step, and
